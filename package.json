@@ -1,0 +1,34 @@
+{
+  "name": "mohallahub-backend",
+  "version": "1.0.0",
+  "description": "Backend for MohallaHub - Hyperlocal Community Platform",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": [
+    "hyperlocal",
+    "community",
+    "social"
+  ],
+  "author": "Abhinand (Founder, MohallaHub)",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.3.1",
+    "express-validator": "^7.0.1",
+    "multer": "^1.4.5-lts.1",
+    "cloudinary": "^1.41.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0",
+    "winston": "^3.11.0",
+    "nodemailer": "^6.9.7"
+  }
+}
+

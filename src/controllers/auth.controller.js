@@ -42,13 +42,14 @@ if (req.files?.coverPic?.[0]) {
       coverPicId = result.public_id;
     }
 
-    // UCA: find or create
+    // ! have some issue on how works
     let uca = await UserCommunityAccess.findOne({ state, district, taluk, block, panchayath, ward });
     if (!uca) {
       uca = await UserCommunityAccess.create({ state, district, taluk, block, panchayath, ward });
     }
 
-    /* actual uca thing 
+    // ? this is better  
+    /*   actual uca thing 
     let uca = await UserCommunityAccess.findOne({ state, district, taluk, block, panchayath, ward })
     if(!uca){
     return res.status(400).json({ success: false, error: { message: "sorry location is not available in our database choose others" } });
@@ -64,6 +65,8 @@ if (req.files?.coverPic?.[0]) {
 
     // Tokens
     const accessToken = signAccessToken(user);
+
+    //! refresh token is not created in way i wants change from crypto to jwt
     const refreshDoc = await createRefreshToken(user._id);
 
     // Set cookies
@@ -98,6 +101,7 @@ export const login = async (req, res, next) => {
     if (!ok) return res.status(401).json({ success: false, error: { message: "Invalid credentials" } });
 
     const accessToken = signAccessToken(user);
+    //! refresh token is not created in way i wants change from crypto to jwt
     const refreshDoc = await createRefreshToken(user._id);
 
     res.cookie("mohalla_refresh", refreshDoc.token, {

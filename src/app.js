@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
-import connectDB from './config/db.js';
+
 
 // Import routes
 // import authRoutes from './routes/authRoutes.js';
@@ -21,12 +21,14 @@ import adminRoutes from "./routes/admin.routes.js";
 import interactionRoutes from "./routes/interaction.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
+
 dotenv.config();
 
 const app = express();
 
-// Connect to database
-connectDB();
+//Connect to database
+
 
 // Middleware
 app.use(cors({
@@ -54,8 +56,7 @@ app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/interactions", interactionRoutes);
 app.use("/api/v1/reports", reportRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
-
-
+app.use("/api/v1/analytics", analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -67,11 +68,10 @@ app.get('/api/health', (req, res) => {
 });
 
 // 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+
 
 // Error handler
+
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({ 

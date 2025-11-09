@@ -246,3 +246,4 @@ export const searchCommunities = async (req, res) => {
 };
 
 
+

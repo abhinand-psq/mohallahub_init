@@ -4,7 +4,7 @@ import User from "../models/User.js";
 import Community from "../models/Community.js";
 import Report from "../models/Report.js";
 import bcrypt from "bcryptjs";
-import { signAccessToken, createRefreshToken } from "../services/token.service.js";
+import { createsignAccessToken, createRefreshToken ,} from "../services/token.service.js";
 
 // admin login
 export const login = async (req, res, next) => {
@@ -15,7 +15,7 @@ export const login = async (req, res, next) => {
     const ok = await bcrypt.compare(password, admin.passwordHash);
     if (!ok) return res.status(401).json({ success: false, error: { message: "Invalid credentials" } });
 
-    const accessToken = signAccessToken({ _id: admin._id, role: "admin" });
+    const accessToken = createsignAccessToken({ _id: admin._id, role: "admin" });
     const refreshDoc = await createRefreshToken(admin._id);
 
     res.cookie("mohalla_refresh", refreshDoc.token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "Strict" });

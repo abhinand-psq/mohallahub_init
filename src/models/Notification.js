@@ -22,3 +22,4 @@ notificationSchema.index({ recipient: 1, isRead: 1 });
 export default mongoose.model('Notification', notificationSchema);
 
 
+

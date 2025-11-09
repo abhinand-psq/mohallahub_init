@@ -6,15 +6,14 @@ const userCommunityAccessSchema = new Schema({
   district: { type: String, required: true },
   taluk: { type: String, required: true },
   block: { type: String, required: true },
-  gramPanchayath: { type: String, required: true },
-  wardNumber: { type: String, required: true },
-  wardName: { type: String, required: true },
+  panchayath: { type: String, required: true },
+  ward: { type: String, required: true },
   hierarchy: { 
     type: String, 
     required: true,
     unique: true,
     default: function() {
-      return `${this.state}-${this.district}-${this.gramPanchayath}-${this.wardNumber}`;
+      return `${this.state}-${this.district}-${this.panchayath}-${this.ward}`;
     }
   }
 }, { timestamps: true });

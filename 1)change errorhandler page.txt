@@ -23,3 +23,11 @@ const REFRESH_DAYS = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS || "7"
 12) refresh token is currently a random token formate change it to jwt.sign from crypt.randombyte
 
 13) random byte or random string always need a expirey attach with it to find its limit
+
+
+current = 
+i changed random token creation to jwt verify for refresh token
+in refresh page use jwt.verify to verification the jwt 
+dont need a token model instead added refresh token to user model adding value to refresh field in user and remove it .
+ verifyAccessToken to verify the token in refresh
+and there is no status feild in user model

@@ -12,3 +12,4 @@ savedPostSchema.index({ user: 1 });
 export default mongoose.model('SavedPost', savedPostSchema);
 
 
+

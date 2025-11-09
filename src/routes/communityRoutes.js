@@ -25,3 +25,4 @@ router.delete('/:id/leave', authenticateToken, leaveCommunity);
 export default router;
 
 
+

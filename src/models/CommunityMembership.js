@@ -9,6 +9,7 @@ const communityMembershipSchema = new Schema({
     enum: ['owner', 'admin', 'moderator', 'member'], 
     default: 'member' 
   },
+  status_in_community:{type:String,enum:['active','banned'],default:'active'},
   joinedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 

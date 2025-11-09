@@ -2,9 +2,8 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import UserCommunityAccess from "../models/UserCommunityAccess.js";
-import RefreshToken from "../models/RefreshToken.js";
 import { uploadBuffer } from "../services/cloudinary.service.js";
-import { signAccessToken, createRefreshToken, revokeRefreshToken } from "../services/token.service.js";
+import { createsignAccessToken, createRefreshToken, verifyRefreshToken } from "../services/token.service.js";
 import crypto from "crypto";
 import { sendResetEmail } from "../services/mail.service.js";
 
@@ -13,159 +12,261 @@ const saltRounds = 10;
 
 export const register = async (req, res, next) => {
   try {
-    // multipart: fields in req.body, files in req.files
-    const { name, username, email, password, state, district, taluk, block, panchayath, ward } = req.body;
-    if (!name || !username || !email || !password) {
-      return res.status(400).json({ success: false, error: { message: "Missing fields" } });
-    }
-    const exists = await User.findOne({ $or: [{ email }, { username }] });
-    if (exists) return res.status(409).json({ success: false, error: { message: "User exists" } });
+    const {
+      firstName,
+      lastName,
+      username,
+      email,
+      password,
+      state,
+      district,
+      taluk,
+      block,
+      panchayath,
+      ward,
+    } = req.body;
 
-    // Handle images
-    let profilePicUrl = null;
-    let profilePicId = null;
-    let coverPicUrl = null;
-    let coverPicId = null;
-
-    if (req.files?.profilePic?.[0]) {
-      const buf = req.files.profilePic[0].buffer;
-      const result = await uploadBuffer(buf, { folder: `users/${email}`, resource_type: "image" });
-      profilePicUrl = result.secure_url;
-       profilePicId = result.public_id;
-    }
    
-
-if (req.files?.coverPic?.[0]) {
-      const buf = req.files.coverPic[0].buffer;
-      const result = await uploadBuffer(buf, { folder: `users/${email}`, resource_type: "image" });
-      coverPicUrl = result.secure_url;
-      coverPicId = result.public_id;
-    }
-
-    // ! have some issue on how works
-    let uca = await UserCommunityAccess.findOne({ state, district, taluk, block, panchayath, ward });
-    if (!uca) {
-      uca = await UserCommunityAccess.create({ state, district, taluk, block, panchayath, ward });
-    }
-
-    // ? this is better  
-    /*   actual uca thing 
-    let uca = await UserCommunityAccess.findOne({ state, district, taluk, block, panchayath, ward })
-    if(!uca){
-    return res.status(400).json({ success: false, error: { message: "sorry location is not available in our database choose others" } });
-    }
-    */
     
 
+    if (!username || !email || !password) {
+      return res.status(400).json({ success: false, error: { message: "Missing required fields" } });
+    }
+
+    // check duplicates
+    const exists = await User.findOne({ $or: [{ email }, { username }] });
+    if (exists) {
+      return res.status(409).json({ success: false, error: { message: "User already exists" } });
+    }
+
+    // location must exist
+    const uca = await UserCommunityAccess.findOne({
+      state,
+      district,
+      taluk,
+      block,
+      panchayath,
+      ward
+    });
+
+
+    // if (!uca) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     error: { message: "Sorry, location not available in our database" },
+    //   });
+    // 
+
+
+    if(!uca){
+    uca = new UserCommunityAccess({
+    state,
+    district,
+    taluk,
+    block,
+    panchayath,
+    ward
+      })
+    }
+
+    
+    
+    // handle images (optional)
+    let newprofilePic = null;
+    let newcoverPic = null;
+
+   console.log('reached q'); 
+    if (req.files?.profilePic?.[0]) {
+      const buf = req.files.profilePic[0].buffer;
+      const uploaded = await uploadBuffer(buf, {
+        folder: `users/${email}`,
+        resource_type: "image",
+      });
+      newprofilePic ={
+        url: uploaded.secure_url,
+        publicId: uploaded.public_id,
+        width: uploaded.width,
+        height: uploaded.height,
+      }
+    }
+
+    if (req.files?.coverPic?.[0]) {
+      const buf = req.files.coverPic[0].buffer;
+      const uploaded = await uploadBuffer(buf, {
+        folder: `users/${email}`,
+        resource_type: "image",
+      });
+      newcoverPic ={
+        url: uploaded.secure_url,
+        publicId: uploaded.public_id,
+        width: uploaded.width,
+        height: uploaded.height,
+      }
+    }
+
+
+    // create user
     const passwordHash = await bcrypt.hash(password, saltRounds);
     const user = await User.create({
-      name, username, email: email.toLowerCase(), passwordHash,
-      profilePic: profilePicUrl, coverPic: coverPicUrl, communityAccess: uca._id
+      firstName,
+      lastName,
+      username,
+      email: email.toLowerCase(),
+      passwordHash,
+      profilePic: newprofilePic ? newprofilePic : undefined,
+      coverPic: newcoverPic ? newcoverPic : undefined,
+      addressReference: uca._id,
     });
 
-    // Tokens
-    const accessToken = signAccessToken(user);
+    console.log(user);
+    
 
-    //! refresh token is not created in way i wants change from crypto to jwt
-    const refreshDoc = await createRefreshToken(user._id);
+    // tokens
+    const newrefresh = createRefreshToken(user);
+    const accessToken = createsignAccessToken(user);
+    user.refreshtoken = newrefresh;
+    await user.save();
+     await uca.save();
+  
+    const refreshMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
 
-    // Set cookies
-    res.cookie("mohalla_refresh", refreshDoc.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: (process.env.REFRESH_TOKEN_EXPIRES_DAYS || 7) * 24 * 60 * 60 * 1000
+res.cookie("mohalla_refresh", newrefresh, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  maxAge: refreshMaxAge,
+});
+res.cookie("mohalla_access", accessToken, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  maxAge: accessMaxAge,
+});
+
+    res.status(201).json({
+      success: true,
+      data: {
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          username: user.username,
+        },
+        accessToken,
+      },
     });
-    // Optionally set access cookie too
-    res.cookie("mohalla_access", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 15 * 60 * 1000
-    });
-
-    res.status(201).json({ success: true, data: { user: { id: user._id, name: user.name, email: user.email, username: user.username }, accessToken } });
   } catch (err) {
     next(err);
   }
 };
 
+// LOGIN
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) return res.status(401).json({ success: false, error: { message: "Invalid credentials" } });
-    if (user.status === "banned") return res.status(403).json({ success: false, error: { message: "User banned" } });
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: { message: "Invalid credentials" } });
+    }
+    if (user.status === "banned") {
+      return res.status(403).json({ success: false, error: { message: "User banned" } });
+    }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ success: false, error: { message: "Invalid credentials" } });
+    if (!ok) {
+      return res.status(401).json({ success: false, error: { message: "Invalid credentials" } });
+    }
 
-    const accessToken = signAccessToken(user);
-    //! refresh token is not created in way i wants change from crypto to jwt
-    const refreshDoc = await createRefreshToken(user._id);
+    const accessToken = createsignAccessToken(user);
+    const newrefresh = createRefreshToken(user);
+    user.refreshtoken = newrefresh;
+    await user.save();
 
-    res.cookie("mohalla_refresh", refreshDoc.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: (process.env.REFRESH_TOKEN_EXPIRES_DAYS || 7) * 24 * 60 * 60 * 1000
+ 
+  
+    const refreshMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
+
+res.cookie("mohalla_refresh", newrefresh, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  maxAge: refreshMaxAge,
+});
+res.cookie("mohalla_access", accessToken, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  maxAge: accessMaxAge,
+});
+    res.json({
+      success: true,
+      data: {
+        accessToken,
+        user: {
+          id: user._id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      },
     });
-    res.cookie("mohalla_access", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 15 * 60 * 1000
-    });
-
-    res.json({ success: true, data: { accessToken, user: { id: user._id, name: user.name, username: user.username } } });
   } catch (err) {
     next(err);
   }
 };
 
+
 export const refresh = async (req, res, next) => {
   try {
-    const token = req.cookies?.mohalla_refresh || req.body?.refreshToken;
-    if (!token) return res.status(401).json({ success: false, error: { message: "Missing refresh token" } });
+    const token = req.cookies?.mohalla_refresh;
+    if (!token)
+      return res.status(401).json({ success: false, error: { message: "Missing refresh token" } });
 
-    const doc = await RefreshToken.findOne({ token });
-    if (!doc) return res.status(401).json({ success: false, error: { message: "Invalid refresh token" } });
-    if (doc.expiresAt < new Date()) {
-      await RefreshToken.deleteOne({ token });
-      return res.status(401).json({ success: false, error: { message: "Refresh token expired" } });
-    }
+    // Verify refresh token validity
+    const decoded = verifyRefreshToken(token);
+    if (!decoded)
+      return res.status(401).json({ success: false, error: { message: "Invalid or expired refresh token" } });
 
-    // rotate: delete old & create new
-    await RefreshToken.deleteOne({ token });
-    const newDoc = await createRefreshToken(doc.user);
+    // Find user by stored refresh token
+    const user = await User.findOne({ refreshtoken: token });
+    if (!user)
+      return res.status(401).json({ success: false, error: { message: "Token not recognized" } });
 
-    const user = await User.findById(doc.user);
-    const accessToken = signAccessToken(user);
+    if (user.status === "banned")
+      return res.status(403).json({ success: false, error: { message: "User banned" } });
 
-    // set cookie
-    res.cookie("mohalla_refresh", newDoc.token, {
+    // Rotate tokens
+    const newRefresh = createRefreshToken(user);
+    const newAccess = createsignAccessToken(user);
+
+    user.refreshtoken = newRefresh;
+    await user.save();
+
+    // Set cookies
+       const refreshMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
+    res.cookie("mohalla_refresh", newRefresh, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: (process.env.REFRESH_TOKEN_EXPIRES_DAYS || 7) * 24 * 60 * 60 * 1000
+      maxAge: refreshMaxAge,
     });
-    res.cookie("mohalla_access", accessToken, {
+    res.cookie("mohalla_access", newAccess, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 15 * 60 * 1000
+      maxAge: accessMaxAge,
     });
 
-    res.json({ success: true, data: { accessToken } });
+    res.json({ success: true, data: { accessToken: newAccess } });
   } catch (err) {
     next(err);
   }
 };
 
 export const logout = async (req, res, next) => {
+  const user = req.user;
   try {
-    const token = req.cookies?.mohalla_refresh || req.body?.refreshToken;
-    if (token) await revokeRefreshToken(token);
+    await User.findOneAndUpdate({_id:user._id},{refreshtoken:""});
+    const token = req.cookies?.mohalla_refresh || req.body?.refreshToken; 
     res.clearCookie("mohalla_refresh");
     res.clearCookie("mohalla_access");
     res.json({ success: true, data: { message: "Logged out" } });
@@ -184,7 +285,7 @@ export const forgot = async (req, res, next) => {
 
     const token = crypto.randomBytes(24).toString("hex");
     const hashed = crypto.createHash("sha256").update(token).digest("hex");
-    user.resetPasswordToken = hashed;
+    user.resetPasswordToken= hashed;
     user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
     await user.save();
 

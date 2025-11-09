@@ -38,3 +38,4 @@ export const generateThumbnail = (publicId, width = 200) => {
 };
 
 
+

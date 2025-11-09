@@ -7,11 +7,12 @@ import UserCommunityAccess from "../models/UserCommunityAccess.js";
 export const createCommunity = async (req, res, next) => {
   try {
     const { name, description, privacy } = req.body;
-    if (!name) return res.status(400).json({ success: false, error: { message: "Name required" } });
+    if (!name && !description && !privacy) return res.status(400).json({ success: false, error: { message: "credential is not enough" } });
 
     // user must have UCA
-    const user = await User.findById(req.user._id).populate("communityAccess");
-    if (!user.communityAccess) return res.status(400).json({ success: false, error: { message: "Add address first" } });
+    //! here communityacess wont be instead address reference
+    const user = await User.findById(req.user._id).populate("addressReference");
+    if (!user.addressReference) return res.status(400).json({ success: false, error: { message: "Add address to create a community" } });
 
     const uca = await UserCommunityAccess.findById(user.communityAccess._id);
     if (!uca) return res.status(400).json({ success: false, error: { message: "Invalid user community access" } });
@@ -73,7 +74,7 @@ export const joinCommunity = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
+}
 
 export const leaveCommunity = async (req, res, next) => {
   try {

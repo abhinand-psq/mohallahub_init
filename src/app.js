@@ -59,7 +59,7 @@ app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/v1/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'MohallaHub Backend is running',
@@ -81,5 +81,6 @@ app.use((err, req, res, next) => {
 });
 
 export default app;
+
 
 

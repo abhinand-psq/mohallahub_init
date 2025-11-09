@@ -47,6 +47,9 @@ resetPasswordExpires: { type: Date },
       followingCount: { type: Number, default: 0 },
       communitiesJoined: { type: Number, default: 0 },
     },
+    details:{type:String, default:function (){
+      return `my name is ${this.firstName} ${this.lastName}`
+    } }
   },
   { timestamps: true }
 );
@@ -55,3 +58,4 @@ userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ username: 1 }, { unique: true });
 
 export default mongoose.model("User", userSchema);
+

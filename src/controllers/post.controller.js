@@ -10,7 +10,7 @@ export const createPost = async (req, res, next) => {
     if (!communityId) return res.status(400).json({ success: false, error: { message: "communityId required" } });
 
     const community = await Community.findById(communityId);
-    if (!community || community.isDeleted) return res.status(404).json({ success: false, error: { message: "Community not found" } });
+    if (!community || community.isActive) return res.status(404).json({ success: false, error: { message: "Community not found" } });
 
     // Check membership unless public
     if (community.privacy !== "public") {

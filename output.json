@@ -1,0 +1,26 @@
+{
+  "profilePic": null,
+  "coverPic": null,
+  "stats": {
+    "postsCount": 0,
+    "followersCount": 0,
+    "followingCount": 0,
+    "communitiesJoined": 0
+  },
+  "_id": "690f607694296b5c3c202cee",
+  "email": "arjunmenon@example.com",
+  "username": "arjunmenon",
+  "passwordHash": "$2a$10$MkCd372gwB.UmyOjwRkSleM8qNX0jggfHIueAFsIt2O69Nif6e7a2",
+  "firstName": "Arjun",
+  "lastName": "Menon",
+  "refreshtoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTBmNjA3Njk0Mjk2YjVjM2MyMDJjZWUiLCJpYXQiOjE3NjI2MTU0MTQsImV4cCI6MTc2MzIyMDIxNH0.3ru4_3v6374DUVaq8fvX5ZNEhULohifi5XdKX4JaIaU",
+  "role": "user",
+  "isVerified": false,
+  "isActive": true,
+  "addressReference": "690f607694296b5c3c202ced",
+  "status": "active",
+  "createdAt": "2025-11-08T15:23:34.571Z",
+  "updatedAt": "2025-11-08T15:23:34.647Z",
+  "__v": 0,
+  "details": "my name is Arjun Menon"
+}

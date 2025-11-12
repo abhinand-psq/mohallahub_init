@@ -8,23 +8,24 @@ const mediaItemSchema = new Schema({
   width: { type: Number },
   height: { type: Number },
   duration: { type: Number }, // For videos
-  thumbnailUrl: { type: String } // For videos
+  thumbnailUrl: { type: String }, // For videos (optional)
 }, { _id: false });
 
 const postSchema = new Schema({
-  content: { type: String, required: true, maxlength: 5000 },
+   content: { type: String, maxlength: 5000, default: "" },
   media: [mediaItemSchema],
   author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   community: { type: Schema.Types.ObjectId, ref: 'Community', required: true },
   rePostOf: { type: Schema.Types.ObjectId, ref: 'Post' }, // For reposts
   isSensitive: { type: Boolean, default: false },
   isDeleted: { type: Boolean, default: false },
+  isActive: { type: Boolean, default: true },
   stats: {
     likesCount: { type: Number, default: 0 },
     commentsCount: { type: Number, default: 0 },
     repostsCount: { type: Number, default: 0 },
-    viewsCount: { type: Number, default: 0 }
-  }
+    viewsCount: { type: Number, default: 0 },
+  },
 }, { timestamps: true });
 
 postSchema.index({ community: 1, createdAt: -1 });
@@ -32,6 +33,3 @@ postSchema.index({ author: 1, createdAt: -1 });
 postSchema.index({ rePostOf: 1 });
 
 export default mongoose.model('Post', postSchema);
-
-
-

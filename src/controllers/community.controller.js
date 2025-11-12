@@ -73,7 +73,7 @@ export const createCommunity = async (req, res, next) => {
       block: uca.block,
       panchayath: uca.panchayath, // align snapshot key with your UCA field
       ward: uca.ward, // pick what you display in feeds
-      privacy:isprivacy || "public",
+      isprivacy,
       icon:{
         url: iconUrl ? iconUrl : undefined,
         IconId: iconId ? iconId : undefined,

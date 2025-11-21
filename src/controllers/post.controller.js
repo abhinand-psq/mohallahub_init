@@ -250,3 +250,321 @@ export const deletePost = async (req, res, next) => {
     next(err);
   }
 };
+
+
+/*
+// src/controllers/post.controller.js
+import Post from "../models/Post.js";
+import Community from "../models/Community.js";
+import CommunityMembership from "../models/CommunityMembership.js";
+import { uploadBuffer } from "../services/cloudinary.service.js";
+import mongoose from "mongoose";
+
+const MAX_MEDIA_FILES = 3;
+const MAX_REPOST_DEPTH = 3;
+
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(String(id));
+
+// Walk repost chain to compute depth. Returns true if depth would exceed MAX_REPOST_DEPTH.
+const exceedsDepthLimit = async (originalPostId) => {
+  let depth = 1;
+  let currentId = originalPostId;
+
+  while (currentId && depth < MAX_REPOST_DEPTH) {
+    const doc = await Post.findById(currentId).select("rePostOf").lean();
+    if (!doc) break;
+    currentId = doc.rePostOf;
+    depth++;
+  }
+
+  // If after walking up to MAX_REPOST_DEPTH we still have a parent, depth exceeded.
+  if (!currentId) return false;
+  // if currentId still has rePostOf, then chain length > MAX_REPOST_DEPTH
+  const lastDoc = await Post.findById(currentId).select("rePostOf").lean();
+  return !!(lastDoc && lastDoc.rePostOf);
+};
+
+// Create post (normal) or repost
+export const createPost = async (req, res, next) => {
+  try {
+    const authUserId = req.user?._id;
+    if (!authUserId) return res.status(401).json({ success: false, error: { message: "Unauthorized" } });
+
+    const { content, communityId, rePostOf } = req.body;
+
+    if (!communityId) return res.status(400).json({ success: false, error: { message: "communityId required" } });
+    if (!isValidId(communityId)) return res.status(400).json({ success: false, error: { message: "Invalid communityId" } });
+
+    // check user not banned
+    if (req.user.status === "banned") return res.status(403).json({ success: false, error: { message: "User banned" } });
+
+    const community = await Community.findById(communityId).lean();
+    if (!community || !community.isActive) return res.status(404).json({ success: false, error: { message: "Community not found or inactive" } });
+
+    // membership check for private/restricted
+    if (community.isPrivate && community.isPrivate !== "public") {
+      const membership = await CommunityMembership.findOne({ user: authUserId, community: communityId }).lean();
+      if (!membership) return res.status(403).json({ success: false, error: { message: "Join community to post" } });
+    }
+
+    // --- Repost flow ---
+    if (rePostOf) {
+      if (!isValidId(rePostOf)) return res.status(400).json({ success: false, error: { message: "Invalid rePostOf ID" } });
+
+      // disallow media files on repost
+      if (req.files?.media?.length) {
+        return res.status(400).json({ success: false, error: { message: "Media uploads not allowed in reposts" } });
+      }
+
+      const originalPost = await Post.findById(rePostOf)
+        .populate("author", "username firstName lastName profilePic")
+        .populate("community", "name state district")
+        .lean();
+
+      if (!originalPost || originalPost.isDeleted) {
+        return res.status(404).json({ success: false, error: { message: "Original post not found or deleted" } });
+      }
+
+      // depth check
+      const tooDeep = await exceedsDepthLimit(originalPost._id);
+      if (tooDeep) return res.status(400).json({ success: false, error: { message: `Repost depth limit (${MAX_REPOST_DEPTH}) exceeded` } });
+
+      // create repost document (content can be empty)
+      const repostDoc = await Post.create({
+        content: (content || "").trim(),
+        media: [],
+        author: authUserId,
+        community: communityId,
+        rePostOf: originalPost._id,
+      });
+
+      // update counters: original repostsCount, and target community postsCount
+      await Promise.all([
+        Post.findByIdAndUpdate(originalPost._id, { $inc: { "stats.repostsCount": 1 } }),
+        Community.findByIdAndUpdate(communityId, { $inc: { "stats.postsCount": 1 } })
+      ]);
+
+      // Return flattened response (Option A)
+      // Note: originalPost already populated
+      return res.status(201).json({
+        success: true,
+        data: {
+          message: "Repost created",
+          post: {
+            _id: repostDoc._id,
+            content: repostDoc.content,
+            author: { id: authUserId }, // minimal author — client can use token to fetch profile; or you can populate if needed
+            community: { id: communityId, name: community.name },
+            rePostOf: {
+              _id: originalPost._id,
+              content: originalPost.content,
+              media: originalPost.media || [],
+              author: originalPost.author || null,
+              community: originalPost.community || null,
+              createdAt: originalPost.createdAt
+            },
+            createdAt: repostDoc.createdAt
+          }
+        }
+      });
+    }
+
+    // --- Normal post flow ---
+    // require content OR at least one media
+    const files = req.files?.media || [];
+    if ((!content || !String(content).trim()) && files.length === 0) {
+      return res.status(400).json({ success: false, error: { message: "Post must have content or media" } });
+    }
+
+    if (files.length > MAX_MEDIA_FILES) {
+      return res.status(400).json({ success: false, error: { message: `Maximum ${MAX_MEDIA_FILES} media files allowed` } });
+    }
+
+    // upload media to Cloudinary
+    const media = [];
+    for (const file of files) {
+      const uploadRes = await uploadBuffer(file.buffer, {
+        folder: `posts/${communityId}`,
+        resource_type: file.mimetype.startsWith("image") ? "image" : "video",
+      });
+
+      media.push({
+        url: uploadRes.secure_url,
+        publicId: uploadRes.public_id,
+        type: file.mimetype.startsWith("image") ? "image" : "video",
+        width: uploadRes.width,
+        height: uploadRes.height,
+        duration: uploadRes.duration || null,
+        thumbnailUrl: uploadRes.thumbnail_url || undefined
+      });
+    }
+
+    const newPost = await Post.create({
+      content: (content || "").trim(),
+      media,
+      author: authUserId,
+      community: communityId,
+    });
+
+    await Community.findByIdAndUpdate(communityId, { $inc: { "stats.postsCount": 1 } });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        message: "Post created",
+        post: newPost
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get posts for a community (flattened parent)
+export const getCommunityPosts = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page || "1", 10);
+    const limit = Math.min(parseInt(req.query.limit || "20", 10), 50);
+    const skip = (page - 1) * limit;
+
+    if (!isValidId(id)) return res.status(400).json({ success: false, error: { message: "Invalid community ID" } });
+
+    const filter = { community: id, isDeleted: false };
+    const total = await Post.countDocuments(filter);
+
+    const posts = await Post.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("author", "username firstName lastName profilePic")
+      .populate({
+        path: "rePostOf",
+        populate: { path: "author", select: "username firstName lastName profilePic" }
+      })
+      .lean();
+
+    // If original post deleted -> mark reposts as deleted in DB (cascade) and remove original media in response
+    const toMarkDeleted = [];
+    for (const p of posts) {
+      if (p.rePostOf && p.rePostOf.isDeleted) {
+        // mark repost as deleted (persist)
+        toMarkDeleted.push(p._id);
+      }
+    }
+    if (toMarkDeleted.length) {
+      // set isDeleted true for all reposts whose parent is deleted, and decrement their communities' stats
+      const repostDocs = await Post.find({ _id: { $in: toMarkDeleted } }).select("_id community").lean();
+      const communityDecrements = {};
+      for (const r of repostDocs) {
+        communityDecrements[r.community] = (communityDecrements[r.community] || 0) + 1;
+      }
+      // mark reposts deleted
+      await Post.updateMany({ _id: { $in: toMarkDeleted } }, { $set: { isDeleted: true } });
+
+      // decrement postsCount per community
+      await Promise.all(Object.keys(communityDecrements).map(cid =>
+        Community.findByIdAndUpdate(cid, { $inc: { "stats.postsCount": -communityDecrements[cid] } })
+      ));
+      // remove them from response (filtered out below)
+    }
+
+    // filter out newly-deleted reposts and prepare flattened parent placeholder for ones that remain
+    const filtered = posts.filter(p => !(p.rePostOf && p.rePostOf.isDeleted));
+
+    // For any remaining reposts whose parent is present but parent marked deleted earlier (edge cases), handling above should cover.
+    // Prepare placeholder for any reposts whose parent might be deleted (should be filtered out)
+    filtered.forEach((p) => {
+      if (p.rePostOf && p.rePostOf.isDeleted) {
+        p.rePostOf.content = "[Original post deleted]";
+        p.rePostOf.media = [];
+      }
+    });
+
+    res.json({
+      success: true,
+      meta: { total, page, limit },
+      data: filtered
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get single post (flattened parent)
+export const getPost = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!isValidId(id)) return res.status(400).json({ success: false, error: { message: "Invalid post ID" } });
+
+    const post = await Post.findById(id)
+      .populate("author", "username firstName lastName profilePic")
+      .populate({
+        path: "rePostOf",
+        populate: { path: "author", select: "username firstName lastName profilePic" }
+      })
+      .lean();
+
+    if (!post) return res.status(404).json({ success: false, error: { message: "Post not found" } });
+
+    if (post.rePostOf && post.rePostOf.isDeleted) {
+      // mark repost as deleted in DB and return a 410-like response
+      await Post.findByIdAndUpdate(post._id, { $set: { isDeleted: true } });
+      // decrement community stat for repost's community
+      await Community.findByIdAndUpdate(post.community, { $inc: { "stats.postsCount": -1 } });
+
+      return res.status(410).json({ success: false, error: { message: "Original post deleted — repost removed" } });
+    }
+
+    res.json({ success: true, data: post });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Delete post (soft-delete) and cascade to reposts
+export const deletePost = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!isValidId(id)) return res.status(400).json({ success: false, error: { message: "Invalid post ID" } });
+
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ success: false, error: { message: "Post not found" } });
+
+    // only author or admin can delete
+    if (post.author.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+      return res.status(403).json({ success: false, error: { message: "Forbidden" } });
+    }
+
+    // soft delete the post
+    post.isDeleted = true;
+    await post.save();
+
+    // decrement community postsCount for this post
+    await Community.findByIdAndUpdate(post.community, { $inc: { "stats.postsCount": -1 } });
+
+    // cascade: mark reposts of this post as deleted and decrement their community post counts
+    const reposts = await Post.find({ rePostOf: post._id, isDeleted: false }).select("_id community").lean();
+    if (reposts.length) {
+      const communityDecrements = {};
+      const repostIds = reposts.map(r => r._id);
+      for (const r of reposts) {
+        communityDecrements[r.community] = (communityDecrements[r.community] || 0) + 1;
+      }
+
+      // mark reposts deleted
+      await Post.updateMany({ _id: { $in: repostIds } }, { $set: { isDeleted: true } });
+
+      // decrement postsCount per community
+      await Promise.all(Object.keys(communityDecrements).map(cid =>
+        Community.findByIdAndUpdate(cid, { $inc: { "stats.postsCount": -communityDecrements[cid] } })
+      ));
+    }
+
+    res.json({ success: true, data: { message: "Post deleted (soft) and reposts cascaded" } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+*/

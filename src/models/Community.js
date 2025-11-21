@@ -23,6 +23,7 @@ const communitySchema = new Schema({
 
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   ucaRef: { type: Schema.Types.ObjectId, ref: "UserCommunityAccess", required: true },
+  allowedMarketplaceCategories: [String],
   // Denormalized fields for fast querying
   state: { type: String, required: true },
   district: { type: String, required: true },

@@ -22,6 +22,7 @@ import interactionRoutes from "./routes/interaction.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
+import marketplaceRoutes from "./routes/marketplace.routes.js";
 
 dotenv.config();
 
@@ -57,6 +58,8 @@ app.use("/api/v1/interactions", interactionRoutes);
 app.use("/api/v1/reports", reportRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
+app.use("/api/v1", marketplaceRoutes);
+
 
 // Health check
 app.get('/api/v1/health', (req, res) => {

@@ -11,7 +11,8 @@ const router = express.Router();
 router.post("/signup", upload.fields([{ name: "profilePic", maxCount: 1 }, { name: "coverPic", maxCount: 1 }]), authController.register);
 
 // login
-router.post("/login", [ body("email").isEmail(), body("password").isLength({ min: 8 }) ], validateRequest, authController.login);
+//  "email": "arjunmen3on@example.com","password": "Secur3e@123",
+router.post("/login",  authController.login);
 
 // refresh
 router.post("/refresh", authController.refresh);

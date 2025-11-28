@@ -12,7 +12,8 @@ const mediaItemSchema = new Schema({
 }, { _id: false });
 
 const postSchema = new Schema({
-   content: { type: String, maxlength: 5000, default: "" },
+   content: { type: String, maxlength: 50, default: "" },
+   description:{type:String,maslength:100,default:""},
   media: [mediaItemSchema],
   author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   community: { type: Schema.Types.ObjectId, ref: 'Community', required: true },
@@ -20,6 +21,7 @@ const postSchema = new Schema({
   isSensitive: { type: Boolean, default: false },
   isDeleted: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
+  postType:{type:String,enum:['repost','post','announcement','discussion'],default:'post'},
   stats: {
     likesCount: { type: Number, default: 0 },
     commentsCount: { type: Number, default: 0 },
@@ -31,5 +33,6 @@ const postSchema = new Schema({
 postSchema.index({ community: 1, createdAt: -1 });
 postSchema.index({ author: 1, createdAt: -1 });
 postSchema.index({ rePostOf: 1 });
+
 
 export default mongoose.model('Post', postSchema);

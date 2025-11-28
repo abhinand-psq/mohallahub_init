@@ -23,14 +23,21 @@ Add DELETE /:id
 
 const router = express.Router();
 
-router.post("/create", authMiddleware, [ body("name").isLength({ min: 3 }).withMessage("Community name must be at least 3 characters long") ], validateRequest,upload.fields([
+function sample(req,res,next){
+  console.log("its comes here");
+}
+
+router.post("/create", authMiddleware, validateRequest,upload.fields([
     { name: "icon", maxCount: 1 },
     { name: "banner", maxCount: 1 },
   ]),communityController.createCommunity);
+router.get("/my", authMiddleware, communityController.getMyCommunities);
+router.get("/available", authMiddleware, communityController.getAvailableCommunities);
+router.get("/get/min", authMiddleware, communityController.getMyCommunitiesSimple);
 
+// ✅ THEN GENERIC ROUTES
 router.get("/", authMiddleware, communityController.listCommunities);
 router.get("/:id", authMiddleware, communityController.getCommunity);
 router.post("/:id/join", authMiddleware, communityController.joinCommunity);
 router.delete("/:id/leave", authMiddleware, communityController.leaveCommunity);
-
 export default router;

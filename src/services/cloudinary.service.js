@@ -1,8 +1,9 @@
 // src/services/cloudinary.service.js
 import cloudinary from "../config/cloudinary.js";
+import dotenv from 'dotenv';
 import streamifier from "streamifier";
 import { logger } from "../config/logger.js";
-
+dotenv.config();
 export const uploadBuffer = (buffer, options = {}) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(

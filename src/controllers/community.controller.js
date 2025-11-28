@@ -1,18 +1,22 @@
 // src/controllers/community.controller.js
+import mongoose from "mongoose";
 import Community from "../models/Community.js";
 import CommunityMembership from "../models/CommunityMembership.js";
 import User from "../models/User.js";
 import UserCommunityAccess from "../models/UserCommunityAccess.js";
 import { uploadBuffer } from "../services/cloudinary.service.js";
-
+import dotenv from 'dotenv'
+dotenv.config()
 export const createCommunity = async (req, res, next) => {
   try {
+    console.log(req.body);
+    
     const authUserId = req.user?._id;
     if (!authUserId) {
       return res.status(401).json({ success: false, error: { message: "Unauthorized" } });
     }
 
-    const { name:communityname, description, privacy:isprivacy } = req.body;
+    const { name:communityname, description,isPrivate ,allowedMarketplaceCategories } = req.body;
     if ((!communityname || !communityname.trim()) && !description) {
       return res.status(400).json({ success: false, error: { message: "Community name or description is required" } });
     }
@@ -73,7 +77,7 @@ export const createCommunity = async (req, res, next) => {
       block: uca.block,
       panchayath: uca.panchayath, // align snapshot key with your UCA field
       ward: uca.ward, // pick what you display in feeds
-      isprivacy,
+      isPrivate:isPrivate,
       icon:{
         url: iconUrl ? iconUrl : undefined,
         IconId: iconId ? iconId : undefined,
@@ -86,6 +90,7 @@ export const createCommunity = async (req, res, next) => {
         membersCount: 1,
         postsCount: 0
       },
+      allowedMarketplaceCategories:allowedMarketplaceCategories || [],
       // if you store publicIds, add fields in model or keep them out:
       // iconPublicId: iconId,
       // bannerPublicId: bannerId,
@@ -124,6 +129,8 @@ export const listCommunities = async (req, res, next) => {
     if (panchayath) filter.panchayath = panchayath;
     if (ward) filter.ward = ward;
     if (search) filter.name = { $regex: search, $options: "i" }; // partial name match
+ console.log(filter);
+ 
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -150,6 +157,8 @@ export const listCommunities = async (req, res, next) => {
 
 // ✅ Join a Community
 export const joinCommunity = async (req, res, next) => {
+  console.log("oops");
+  
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id))
@@ -185,6 +194,7 @@ export const joinCommunity = async (req, res, next) => {
 export const leaveCommunity = async (req, res, next) => {
   try {
     const { id } = req.params;
+    console.log(id)
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ success: false, error: { message: "Invalid community ID" } });
 
@@ -230,6 +240,143 @@ export const getCommunity = async (req, res, next) => {
       },
     });
   } catch (err) {
+    console.log("sddsfbisdfb");
+    console.log(err);
+
     next(err);
+  }
+};
+
+
+
+export const getMyCommunities = async (req, res, next) => {
+  try {
+    // User is already attached by cookie-based auth middleware
+    const userId = req.user._id;
+
+    const memberships = await CommunityMembership.find({
+      user: userId,
+      status_in_community: "active",
+    })
+      .populate({
+        path: "community",
+        select: "name description ucaref icon banner isPrivate createdBy",
+      })
+      .sort({ createdAt: -1 });
+
+    const communities = memberships
+      .filter(m => m.community) // safety check
+      .map(m => ({
+        _id: m.community._id,
+        name: m.community.name,
+        description: m.community.description,
+        ucaref: m.community.ucaref,
+        icon: m.community.icon,
+        banner: m.community.banner,
+        isPrivate: m.community.isPrivate,
+        createdBy: m.community.createdBy,
+        joinedAt: m.createdAt,
+        roleInCommunity: m.role_in_community || "member"
+      }));
+
+    res.json({
+      success: true,
+      data: communities,
+      total: communities.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+export const getAvailableCommunities = async (req, res, next) => {
+  console.log("hello")
+  try {
+    const user = req.user;
+
+    if (!user.addressReference) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "User address reference not found" }
+      });
+    }
+
+    // 1. Get user's location info
+    const userLocation = await UserCommunityAccess.findById(user.addressReference);
+
+    if (!userLocation) {
+      return res.status(404).json({
+        success: false,
+        error: { message: "User community access not found" }
+      });
+    }
+
+    // 2. Get communities user already joined
+    const joinedMemberships = await CommunityMembership.find({
+      user: user._id,
+      status_in_community: "active"
+    }).select("community");
+  
+
+    const joinedCommunityIds = joinedMemberships.map(m => m.community);
+    console.log(userLocation._id);
+    
+//  const v = await Community.find({
+//       ucaRef: userLocation._id,
+//        isActive: true
+//     })
+    
+//     console.log(v)
+
+    // 3. Find communities matching user's ucaref
+    const availableCommunities = await Community.find({
+     ucaRef: userLocation._id,
+      _id: { $nin: joinedCommunityIds },
+       isActive: true
+    }).select("name description icon ");
+
+    res.json({
+      success: true,
+      data: availableCommunities,
+      total: availableCommunities.length
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+export const getMyCommunitiesSimple = async (req, res, next) => {
+  console.log("sdf");
+  try {
+    const userId = req.user._id;
+
+    const memberships = await CommunityMembership.find({
+      user: userId,
+      status_in_community: "active"
+    })
+      .populate({
+        path: "community",
+        select: "name icon"
+      });
+
+    const communities = memberships
+      .filter(m => m.community)
+      .map(m => ({
+        id: m.community._id,
+        name: m.community.name,
+        icon: m.community.icon
+      }));
+
+    res.json({
+      data: communities,
+      total: communities.length
+    });
+  } catch (error) {
+    next(error);
   }
 };

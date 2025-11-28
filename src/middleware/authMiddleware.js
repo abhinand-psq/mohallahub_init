@@ -13,12 +13,11 @@ export const authMiddleware = async (req, res, next) => {
     if (auth && auth.startsWith("Bearer ")) token = auth?.split(" ")?.[1];
 
     if (!token && req.cookies?.mohalla_access) token = req.cookies?.mohalla_access;
-
     if (!token) {
       req.user = null;
       return res.status(401).json({ success: false, error: { message: "Not authenticated" } });
     }
-
+    
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.sub).select("-passwordHash");
     if (!user) return res.status(401).json({ success: false, error: { message: "User not found" } });

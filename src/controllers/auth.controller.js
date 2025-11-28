@@ -11,6 +11,7 @@ import { sendResetEmail } from "../services/mail.service.js";
 const saltRounds = 10;
 
 export const register = async (req, res, next) => {
+ 
   try {
     const {
       firstName,
@@ -27,7 +28,7 @@ export const register = async (req, res, next) => {
     } = req.body;
 
    
-    
+   
 
     if (!username || !email || !password) {
       return res.status(400).json({ success: false, error: { message: "Missing required fields" } });
@@ -40,7 +41,7 @@ export const register = async (req, res, next) => {
     }
 
     // location must exist
-    const uca = await UserCommunityAccess.findOne({
+    let uca = await UserCommunityAccess.findOne({
       state,
       district,
       taluk,
@@ -49,7 +50,7 @@ export const register = async (req, res, next) => {
       ward
     });
 
-
+ 
     // if (!uca) {
     //   return res.status(400).json({
     //     success: false,
@@ -70,6 +71,7 @@ export const register = async (req, res, next) => {
     }
 
     
+    console.log("its comes here");
     
     // handle images (optional)
     let newprofilePic = null;
@@ -105,6 +107,7 @@ export const register = async (req, res, next) => {
     }
 
 
+
     // create user
     const passwordHash = await bcrypt.hash(password, saltRounds);
     const user = await User.create({
@@ -119,7 +122,7 @@ export const register = async (req, res, next) => {
     });
 
     console.log(user);
-    
+    console.log("uca is priblem");
 
     // tokens
     const newrefresh = createRefreshToken(user);
@@ -141,6 +144,8 @@ res.cookie("mohalla_access", accessToken, {
   secure: process.env.NODE_ENV === "production",
   maxAge: accessMaxAge,
 });
+console.log("almost");
+
 
     res.status(201).json({
       success: true,
@@ -162,8 +167,10 @@ res.cookie("mohalla_access", accessToken, {
 
 // LOGIN
 export const login = async (req, res, next) => {
+  console.log('hello');
   try {
-    const { email, password } = req.body;
+    const { email, password } =req.body;
+    console.log(req.body);
     const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
@@ -264,6 +271,11 @@ const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
 
 export const logout = async (req, res, next) => {
   const user = req.user;
+  console.log(user);
+  console.log(user);
+  if(!user){
+     return res.status(403).json({ success: false, error: { message: "User is not available" } });
+  }
   try {
     await User.findOneAndUpdate({_id:user._id},{refreshtoken:""});
     const token = req.cookies?.mohalla_refresh || req.body?.refreshToken; 

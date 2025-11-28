@@ -2,6 +2,7 @@
 import Post from "../models/Post.js";
 import Community from "../models/Community.js";
 import CommunityMembership from "../models/CommunityMembership.js";
+import User from '../models/User.js'
 import { uploadBuffer } from "../services/cloudinary.service.js";
 import mongoose from "mongoose";
 /**
@@ -16,7 +17,7 @@ const MAX_REPOST_DEPTH = 3;
 
 export const createPost = async (req, res, next) => {
   try {
-    const { content, communityId, rePostOf } = req.body;
+    const { content, description ,communityId, rePostOf,postType } = req.body;
     const authUserId = req.user?._id;
 
     if (!authUserId) {
@@ -40,12 +41,28 @@ export const createPost = async (req, res, next) => {
       }
     }
 
+    
+
     // --- REPOST FLOW ---
     if (rePostOf) {
       // Validate repost target
       if (!mongoose.Types.ObjectId.isValid(rePostOf)) {
         return res.status(400).json({ success: false, error: { message: "Invalid rePostOf ID" } });
+
       }
+      if (postType === "repost" && !rePostOf) {
+  return res.status(400).json({
+    success: false,
+    error: { message: "rePostOf is required when postType is repost" }
+  });
+}
+if (postType !== "repost" && rePostOf) {
+  return res.status(400).json({
+    success: false,
+    error: { message: "rePostOf can only be used with repost type" }
+  });
+}
+
 
       const originalPost = await Post.findById(rePostOf)
         .populate("author", "username firstName profilePic")
@@ -79,7 +96,10 @@ export const createPost = async (req, res, next) => {
         community: communityId,
         author: authUserId,
         rePostOf,
+        description:description,
+        postType:postType || undefined,
         isDeleted: false,
+        
       });
 
       await Promise.all([
@@ -98,6 +118,7 @@ export const createPost = async (req, res, next) => {
             community: originalPost.community,
             content: originalPost.content,
             media: originalPost.media,
+            description: originalPost.description
           },
         },
       });
@@ -126,6 +147,7 @@ export const createPost = async (req, res, next) => {
         type: file.mimetype.startsWith("image") ? "image" : "video",
         width: uploadRes.width,
         height: uploadRes.height,
+        postType:postType || undefined,
         duration: uploadRes.duration,
       });
     }
@@ -135,6 +157,7 @@ export const createPost = async (req, res, next) => {
       media,
       author: authUserId,
       community: communityId,
+      description:description
     });
 
     await Community.findByIdAndUpdate(communityId, { $inc: { "stats.postsCount": 1 } });
@@ -251,6 +274,23 @@ export const deletePost = async (req, res, next) => {
   }
 };
 
+const feed = async(req,res,next ) =>{
+  try{
+const userid = req?.user?._id;
+// const isuserexit = await User.exists({_id:userid})
+// const communites_from_user = await CommunityMembership.find({user:userid})
+const [isuserexit,communities_from_user] = Promise.all([User.exists({_id:userid}),CommunityMembership.find({user:userid},{status_in_community})])
+if(!isuserexit){
+  return res.status(402).json({error:"user not found"})
+}
+const allpost = await Post.find({_id:{$in:communities_from_user}}).populate("community").
+populate("users").populate("repostof")
+
+
+  }catch(e){
+   next(e)
+  }
+}
 
 /*
 // src/controllers/post.controller.js

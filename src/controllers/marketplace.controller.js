@@ -20,6 +20,8 @@ const isValidId = (id) => mongoose.Types.ObjectId.isValid(String(id));
  * multipart: logo, banner (optional)
  */
 export const createShop = async (req, res, next) => {
+  console.log(req.body)
+ 
   try {
     const ownerId = req.user?._id;
     const communityId = req.params.communityId;
@@ -38,13 +40,13 @@ export const createShop = async (req, res, next) => {
     if (!membership) return res.status(403).json({ success: false, error: { message: "Join community to open a shop" } });
 
     // membership age check
-    if (SHOP_MIN_MEMBERSHIP_DAYS > 0) {
-      const joinDate = membership.joinedAt || membership.createdAt || membership._id.getTimestamp();
-      const diffDays = Math.floor((Date.now() - new Date(joinDate).getTime()) / (24 * 60 * 60 * 1000));
-      if (diffDays < SHOP_MIN_MEMBERSHIP_DAYS) {
-        return res.status(403).json({ success: false, error: { message: `You must be a community member for at least ${SHOP_MIN_MEMBERSHIP_DAYS} days to open a shop` } });
-      }
-    }
+    // if (SHOP_MIN_MEMBERSHIP_DAYS > 0) {
+    //   const joinDate = membership.joinedAt || membership.createdAt || membership._id.getTimestamp();
+    //   const diffDays = Math.floor((Date.now() - new Date(joinDate).getTime()) / (24 * 60 * 60 * 1000));
+    //   if (diffDays < SHOP_MIN_MEMBERSHIP_DAYS) {
+    //     return res.status(403).json({ success: false, error: { message: `You must be a community member for at least ${SHOP_MIN_MEMBERSHIP_DAYS} days to open a shop` } });
+    //   }
+    // }
 
     // per-user shop limit (across all communities)
     const userShopCount = await Shop.countDocuments({ owner: ownerId });
@@ -67,7 +69,7 @@ export const createShop = async (req, res, next) => {
     }
 
     // Handle optional media uploads (logo, banner)
-    let logo = null, banner = null;
+    let logo = undefined, banner = undefined;
     if (req.files?.logo?.[0]) {
       const up = await uploadBuffer(req.files.logo[0].buffer, { folder: `shops/${ownerId}`, resource_type: "image" });
       logo = { url: up.secure_url, publicId: up.public_id };
@@ -308,3 +310,5 @@ export const blockProduct = async (req, res, next) => {
     next(err);
   }
 };
+
+

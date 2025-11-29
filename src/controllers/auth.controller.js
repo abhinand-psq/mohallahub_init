@@ -334,3 +334,29 @@ export const reset = async (req, res, next) => {
     next(err);
   }
 };
+
+export const getMe = async (req, res, next) => {
+  try {
+    const user = req.user; // authMiddleware already sets req.user
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: "Unauthorized" }
+      });
+    }
+
+    // populate addressReference (ucaRef)
+    const populatedUser = await User.findById(user._id)
+      .select("-passwordHash -refreshtoken -__v")
+      // .populate("addressReference");
+
+    res.json({
+      success: true,
+      data: populatedUser
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

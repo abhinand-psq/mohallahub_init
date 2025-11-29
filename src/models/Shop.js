@@ -14,8 +14,8 @@ const shopSchema = new Schema({
 
   categories: [{ type: String }], // seller categories, must be subset of community.allowedMarketplaceCategories
 
-  logo:{url:{ type: String, default: null },publicId: { type: String, default: null }},
-  banner: {url:{ type: String, default: null },publicId: { type: String, default: null }},
+  logo:{publicId:{ type: String, default: null },url: { type: String, default: "https://img.freepik.com/premium-vector/modern-shopping-bag-logo-design-with-slogan-placeholder-minimalist-style_906185-1003.jpg" }},
+  banner: {publicId:{ type: String, default: null },url: { type: String, default: "https://img.freepik.com/premium-vector/flat-promotion-original-banner-sales-background-price-tag_151170-1444.jpg" }},
 
   isActive: { type: Boolean, default: true },      // owner can pause shop
   isApproved: { type: Boolean, default: true },    // future: community admin can require approval

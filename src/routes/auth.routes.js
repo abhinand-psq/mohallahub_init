@@ -4,6 +4,7 @@ import { body } from "express-validator";
 import validateRequest from "../middleware/validateRequest.js";
 import { upload } from "../middleware/uploadMiddleware.js";
 import * as authController from "../controllers/auth.controller.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.post("/refresh", authController.refresh);
 
 // logout
 router.post("/logout", authController.logout);
-
+router.get("/me", authMiddleware, authController.getMe);
 // forgot/reset
 router.post("/forgot", [ body("email").isEmail() ], validateRequest, authController.forgot);
 router.post("/reset/:token", [ body("newPassword").isLength({ min: 8 }) ], validateRequest, authController.reset);

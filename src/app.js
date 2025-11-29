@@ -61,7 +61,7 @@ app.use("/api/v1/interactions", interactionRoutes);
 app.use("/api/v1/reports", reportRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
-app.use("/api/v1", marketplaceRoutes);
+app.use("/api/v1/", marketplaceRoutes);
 app.use('/auction',auction)
 
 // Health check

@@ -11,7 +11,7 @@ import { sendResetEmail } from "../services/mail.service.js";
 const saltRounds = 10;
 
 export const register = async (req, res, next) => {
- 
+ console.log("atleast")
   try {
     const {
       firstName,
@@ -218,6 +218,7 @@ res.cookie("mohalla_access", accessToken, {
       },
     });
   } catch (err) {
+    console.log(err)
     next(err);
   }
 };

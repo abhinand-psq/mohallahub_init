@@ -28,7 +28,7 @@ resetPasswordExpires: { type: Date },
       height: {type: Number, default: null},
     },
 
-    role: { type: String, enum: ["user", "admin"], default: "user" },
+    role: { type: String, enum: ["user", "admin","system"], default: "user" },
     isVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
 

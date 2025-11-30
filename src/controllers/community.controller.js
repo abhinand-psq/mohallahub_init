@@ -5,7 +5,10 @@ import CommunityMembership from "../models/CommunityMembership.js";
 import User from "../models/User.js";
 import UserCommunityAccess from "../models/UserCommunityAccess.js";
 import { uploadBuffer } from "../services/cloudinary.service.js";
+
+
 import dotenv from 'dotenv'
+import { createDefaultCommunity } from "../utils/CreateCommunity.js";
 dotenv.config()
 export const createCommunity = async (req, res, next) => {
   try {

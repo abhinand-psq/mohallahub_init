@@ -25,6 +25,8 @@ import analyticsRoutes from "./routes/analytics.routes.js";
 import marketplaceRoutes from "./routes/marketplace.routes.js";
 import auction from "./routes/auction.routes.js"
 import feedRoutes from "./routes/feed.routes.js";
+import servicesRoutes from "./routes/services.routes.js";
+
 
 
 dotenv.config();
@@ -62,6 +64,7 @@ app.use("/api/v1/reports", reportRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
 app.use("/api/v1/", marketplaceRoutes);
+app.use("/api/v1", servicesRoutes);
 app.use('/auction',auction)
 
 // Health check

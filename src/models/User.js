@@ -31,7 +31,7 @@ resetPasswordExpires: { type: Date },
     role: { type: String, enum: ["user", "admin","system"], default: "user" },
     isVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
-
+    isSystemGenerated: {type: Boolean, default: false},
     // linked location
     addressReference: {
       type: Schema.Types.ObjectId,

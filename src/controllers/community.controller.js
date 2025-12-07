@@ -8,7 +8,7 @@ import { uploadBuffer } from "../services/cloudinary.service.js";
 
 
 import dotenv from 'dotenv'
-import { createDefaultCommunity } from "../utils/CreateCommunity.js";
+
 dotenv.config()
 export const createCommunity = async (req, res, next) => {
   try {
@@ -41,6 +41,8 @@ export const createCommunity = async (req, res, next) => {
 
     // get UCA (single source of truth)
     const uca = await UserCommunityAccess.findById(user.addressReference).lean();
+    console.log(uca);
+    
     if (!uca) {
       return res.status(400).json({ success: false, error: { message: "Address reference not found" } });
     }
@@ -68,16 +70,19 @@ export const createCommunity = async (req, res, next) => {
     }
 
     // create community
+    console.log("its work here fuck you");
+
     const community = await Community.create({
       name: communityname.trim(),
       description: description?.trim() || "",
       createdBy: authUserId,
-      hierarchy: uca.hierarchy || undefined,
+       hierarchy: [uca.state, uca.district, uca.taluk, uca.block, uca.panchayath, uca.ward].filter(Boolean).join("-"),
       state: uca.state,
       district: uca.district,
       ucaRef: uca._id,
       taluk: uca.taluk,
       block: uca.block,
+      isDefault:false,
       panchayath: uca.panchayath, // align snapshot key with your UCA field
       ward: uca.ward, // pick what you display in feeds
       isPrivate:isPrivate,
@@ -98,6 +103,7 @@ export const createCommunity = async (req, res, next) => {
       // iconPublicId: iconId,
       // bannerPublicId: bannerId,
     });
+console.log(community );
 
     // make creator the owner (idempotent thanks to unique (user,community) index)
     await CommunityMembership.create({
@@ -120,6 +126,8 @@ export const createCommunity = async (req, res, next) => {
     return next(err);
   }
 };
+
+
 
 // ✅ List Communities
 export const listCommunities = async (req, res, next) => {

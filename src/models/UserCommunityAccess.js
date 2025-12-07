@@ -12,9 +12,7 @@ const userCommunityAccessSchema = new Schema({
     type: String, 
     required: true,
     unique: true,
-    default: function() {
-      return `${this.state}-${this.district}-${this.taluk}-${this.block}-${this.panchayath}-${this.ward}`;
-    }
+    default: ""
   }
 }, { timestamps: true });
 

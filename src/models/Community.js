@@ -33,22 +33,31 @@ const communitySchema = new Schema({
   ward: { type: String, required: true },
   isPrivate: { type:String, enum: ["public", "private", "restricted"], default: "public" },
   isActive: { type: Boolean, default: true },
-    hierarchy: { 
+  hierarchy: { 
     type: String, 
     required: true,
-    default: function() {
-      return `${this.state}-${this.district}-${this.taluk}-${this.block}-${this.panchayath}-${this.ward}`;
-    }
+    default:"",
   },
+  isDefault: {
+    type: Boolean,
+    default: false,
+  },
+
   stats: {
     membersCount: { type: Number, default: 0 },
     postsCount: { type: Number, default: 0 }
   }
 }, { timestamps: true });
 
-communitySchema.index({ name: 1, hierarchy: 1 }, { unique: true });
+
 communitySchema.index({ hierarchy: 1 });
 communitySchema.index({ createdBy: 1 });
+communitySchema.index(
+  { ucaRef: 1 },
+  { unique: true, partialFilterExpression: { isDefault: true } }
+);
+
+
 
 export default mongoose.model('Community', communitySchema);
 

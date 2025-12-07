@@ -16,7 +16,7 @@ const router = express.Router();
 router.post(
   "/communities/:communityId/services",
   authMiddleware,
-  upload.single("image"),
+   upload.fields([{ name: "image", maxCount: 1 }]),
   [
     body("title").isLength({ min: 2 }),
     body("category").isString().notEmpty(),

@@ -90,7 +90,7 @@ export const listServicesInCommunity = async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit || "20", 10), 50);
     const skip = (page - 1) * limit;
 
-    const filter = { community: ObjectId(communityId), isDeleted: false, isActive: true };
+    const filter = { community:new ObjectId(communityId), isDeleted: false, isActive: true };
 
     if (req.query.category) filter.category = req.query.category;
     if (req.query.available) filter.available = req.query.available === "true";

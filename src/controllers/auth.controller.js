@@ -1,19 +1,24 @@
 // src/controllers/auth.controller.js
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import UserCommunityAccess from "../models/UserCommunityAccess.js";
 import { uploadBuffer } from "../services/cloudinary.service.js";
 import { createsignAccessToken, createRefreshToken, verifyRefreshToken } from "../services/token.service.js";
 import crypto from "crypto";
 import { sendResetEmail } from "../services/mail.service.js";
+import { createDefaultCommunity } from "../utils/CreateCommunity.js";
 
 // Helpers
 const saltRounds = 10;
+const ObjectId = mongoose.Types.ObjectId;
 
 export const register = async (req, res, next) => {
- console.log("atleast")
+
+
+
   try {
-    const {
+    let {
       firstName,
       lastName,
       username,
@@ -27,90 +32,93 @@ export const register = async (req, res, next) => {
       ward,
     } = req.body;
 
-   
-   
+     if (state) state = state.trim().toLowerCase();
+if (district) district = district.trim().toLowerCase();
+if (taluk) taluk = taluk.trim().toLowerCase();
+if (block) block = block.trim().toLowerCase();
+if (panchayath) panchayath = panchayath.trim().toLowerCase();
+if (ward) ward = ward.trim().toLowerCase();
+
 
     if (!username || !email || !password) {
       return res.status(400).json({ success: false, error: { message: "Missing required fields" } });
     }
 
     // check duplicates
-    const exists = await User.findOne({ $or: [{ email }, { username }] });
+    const exists = await User.findOne({ $or: [{ email: email.toLowerCase() }, { username }] });
     if (exists) {
       return res.status(409).json({ success: false, error: { message: "User already exists" } });
     }
 
-    // location must exist
-    let uca = await UserCommunityAccess.findOne({
+
+    
+
+    // Atomically find or create UCA using upsert to avoid races
+    const ucaFilter = {
       state,
       district,
       taluk,
       block,
       panchayath,
-      ward
+      ward,
+    };
+
+    const ucaUpdate = {
+      $setOnInsert: {
+        state:state,
+        district,
+        taluk,
+        block,
+         hierarchy: [state, district, taluk, block, panchayath, ward].filter(Boolean).join("-"),
+        panchayath,
+        ward,
+        
+      },
+    };
+    
+    console.log("chck");
+    console.log(ucaUpdate);
+    
+
+    let uca = await UserCommunityAccess.findOneAndUpdate(ucaFilter, ucaUpdate, {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
     });
 
- 
-    // if (!uca) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     error: { message: "Sorry, location not available in our database" },
-    //   });
-    // 
-
-
     if(!uca){
-    uca = new UserCommunityAccess({
-    state,
-    district,
-    taluk,
-    block,
-    panchayath,
-    ward
-      })
+       return res.status(409).json({ success: false, error: { message: "error in finding or updating user communityacess" } });
     }
-
-    
-    console.log("its comes here");
-    
     // handle images (optional)
-    let newprofilePic = null;
-    let newcoverPic = null;
+    let newprofilePic;
+    let newcoverPic;
 
-   console.log('reached q'); 
     if (req.files?.profilePic?.[0]) {
       const buf = req.files.profilePic[0].buffer;
-      const uploaded = await uploadBuffer(buf, {
-        folder: `users/${email}`,
-        resource_type: "image",
-      });
-      newprofilePic ={
+      const uploaded = await uploadBuffer(buf, { folder: `users/${email.toLowerCase()}`, resource_type: "image" });
+      newprofilePic = {
         url: uploaded.secure_url,
         publicId: uploaded.public_id,
         width: uploaded.width,
         height: uploaded.height,
-      }
+      };
     }
 
     if (req.files?.coverPic?.[0]) {
       const buf = req.files.coverPic[0].buffer;
-      const uploaded = await uploadBuffer(buf, {
-        folder: `users/${email}`,
-        resource_type: "image",
-      });
-      newcoverPic ={
+      const uploaded = await uploadBuffer(buf, { folder: `users/${email.toLowerCase()}`, resource_type: "image" });
+      newcoverPic = {
         url: uploaded.secure_url,
         publicId: uploaded.public_id,
         width: uploaded.width,
         height: uploaded.height,
-      }
+      };
     }
 
-
-
-    // create user
+    // create user with saved uca._id
     const passwordHash = await bcrypt.hash(password, saltRounds);
-    const user = await User.create({
+
+    const userDoc = await User.create({
       firstName,
       lastName,
       username,
@@ -121,41 +129,50 @@ export const register = async (req, res, next) => {
       addressReference: uca._id,
     });
 
-    console.log(user);
-    console.log("uca is priblem");
+    if(!userDoc){
+       return res.status(409).json({ success: false, error: { message: "User can't create please try again later" } });
+    }
 
     // tokens
-    const newrefresh = createRefreshToken(user);
-    const accessToken = createsignAccessToken(user);
-    user.refreshtoken = newrefresh;
-    await user.save();
-     await uca.save();
+    const newrefresh = createRefreshToken(userDoc);
+    const accessToken = createsignAccessToken(userDoc);
+    userDoc.refreshtoken = newrefresh;
+    await userDoc.save();
+
   
+
+    // Create default community (idempotent) and auto-join - non-blocking but we await to ensure membership exists
+    try {
+      await createDefaultCommunity(userDoc, uca._id, true);
+    } catch (err) {
+      // do NOT fail registration for community creation errors: log and continue
+      console.error("createDefaultCommunity error:", err.message);
+       return res.status(409).json({ success: false, error: { message: "createDefaultCommunity error",error:err.message } });
+    }
+
     const refreshMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
+    const accessMaxAge = 15 * 60 * 1000; // 15 minutes (you previously used 1 hour - adjust as required)
 
-res.cookie("mohalla_refresh", newrefresh, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  maxAge: refreshMaxAge,
-});
-res.cookie("mohalla_access", accessToken, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  maxAge: accessMaxAge,
-});
-console.log("almost");
-
+    res.cookie("mohalla_refresh", newrefresh, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: refreshMaxAge,
+    });
+    res.cookie("mohalla_access", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: accessMaxAge,
+    });
 
     res.status(201).json({
       success: true,
       data: {
         user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          username: user.username,
+          id: userDoc._id,
+          firstName: userDoc.firstName,
+          lastName: userDoc.lastName,
+          email: userDoc.email,
+          username: userDoc.username,
         },
         accessToken,
       },
@@ -272,8 +289,8 @@ const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
 
 export const logout = async (req, res, next) => {
   const user = req.user;
-  console.log(user);
-  console.log(user);
+ 
+
   if(!user){
      return res.status(403).json({ success: false, error: { message: "User is not available" } });
   }

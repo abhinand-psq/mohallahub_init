@@ -6,11 +6,10 @@ const communityMembershipSchema = new Schema({
   community: { type: Schema.Types.ObjectId, ref: 'Community', required: true },
   role: { 
     type: String,
-    enum: ['owner', 'admin', 'moderator', 'member','system'], 
+    enum: ['owner', 'admin', 'moderator', 'member',], 
     default: 'member' 
   },
   status_in_community:{type:String,enum:['active','banned'],default:'active'},
-  joinedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
 communityMembershipSchema.index({ user: 1, community: 1 }, { unique: true });

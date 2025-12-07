@@ -38,7 +38,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'https://mohalla-frontend-ca1fqao6g-abhinands-projects-d467734b.vercel.app' || 'http://localhost:3000',
+  origin: 'https://mohalla-react.vercel.app' || 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());

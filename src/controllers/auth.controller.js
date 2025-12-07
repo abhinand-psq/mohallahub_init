@@ -155,12 +155,12 @@ if (ward) ward = ward.trim().toLowerCase();
 
     res.cookie("mohalla_refresh", newrefresh, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure:true,
       maxAge: refreshMaxAge,
     });
     res.cookie("mohalla_access", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       maxAge: accessMaxAge,
     });
 
@@ -214,12 +214,12 @@ const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
 
 res.cookie("mohalla_refresh", newrefresh, {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure: true,
   maxAge: refreshMaxAge,
 });
 res.cookie("mohalla_access", accessToken, {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure:true,
   maxAge: accessMaxAge,
 });
     res.json({
@@ -272,12 +272,12 @@ export const refresh = async (req, res, next) => {
 const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
     res.cookie("mohalla_refresh", newRefresh, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       maxAge: refreshMaxAge,
     });
     res.cookie("mohalla_access", newAccess, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure:true,
       maxAge: accessMaxAge,
     });
 

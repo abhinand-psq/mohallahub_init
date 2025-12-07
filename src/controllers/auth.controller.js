@@ -156,11 +156,13 @@ if (ward) ward = ward.trim().toLowerCase();
     res.cookie("mohalla_refresh", newrefresh, {
       httpOnly: true,
       secure:true,
+      sameSite: "None",
       maxAge: refreshMaxAge,
     });
     res.cookie("mohalla_access", accessToken, {
       httpOnly: true,
       secure: true,
+      sameSite: "None",
       maxAge: accessMaxAge,
     });
 
@@ -215,11 +217,13 @@ const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
 res.cookie("mohalla_refresh", newrefresh, {
   httpOnly: true,
   secure: true,
+  sameSite: "None",
   maxAge: refreshMaxAge,
 });
 res.cookie("mohalla_access", accessToken, {
   httpOnly: true,
   secure:true,
+  sameSite: "None",
   maxAge: accessMaxAge,
 });
     res.json({

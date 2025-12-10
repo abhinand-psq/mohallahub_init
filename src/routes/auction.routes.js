@@ -1,21 +1,14 @@
 import express from 'express'
-const router = express()
-import cront from 'node-cron'
-import User from '../models/User.js'
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { closeBidding, createAuction, finalizeAuction, placeBid } from '../controllers/auction.controller.js'
+import { getAuctionFeed } from '../controllers/feed.controller.js'
+const router = express.Router();
 
-router.get('/cronjob',(req,res)=>{
-    console.log("its working");
-    
-try{
-    cront.schedule('* * * * *',async()=>{
-const value = await User.find({})
-console.log(value);
-res.send(value)
-})
-res.send('waiting for result')
-}catch(e){
-res.send(e).status(401)
-}
-})
+
+router.post("/create", authMiddleware, createAuction);
+router.get("/auctions", authMiddleware, getAuctionFeed);
+router.post("/bids/:auctionId/bid", authMiddleware, placeBid);
+router.post("/auctions/:auctionId/finalize", authMiddleware, finalizeAuction);
+router.post("/auctions/:auctionId/close", authMiddleware, closeBidding);
 
 export default router

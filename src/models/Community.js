@@ -20,7 +20,7 @@ const communitySchema = new Schema({
     },
   BannerId: {type: String  , default:null},
   },
-
+  isAuction:{ type: Boolean,default: false},
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   ucaRef: { type: Schema.Types.ObjectId, ref: "UserCommunityAccess", required: true },
   allowedMarketplaceCategories: [String],///

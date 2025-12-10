@@ -8,7 +8,8 @@ import { createsignAccessToken, createRefreshToken, verifyRefreshToken } from ".
 import crypto from "crypto";
 import { sendResetEmail } from "../services/mail.service.js";
 import { createDefaultCommunity } from "../utils/CreateCommunity.js";
-
+import dotenv from 'dotenv';
+dotenv.config();
 // Helpers
 const saltRounds = 10;
 const ObjectId = mongoose.Types.ObjectId;
@@ -155,14 +156,14 @@ if (ward) ward = ward.trim().toLowerCase();
 
     res.cookie("mohalla_refresh", newrefresh, {
       httpOnly: true,
-      secure:true,
-      sameSite: "None",
+      secure:process.env.NODE_ENV == "production",
+      sameSite:process.env.NODE_ENV == "production" && "None",
       maxAge: refreshMaxAge,
     });
     res.cookie("mohalla_access", accessToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: "None",
+      secure: process.env.NODE_ENV == "production",
+      sameSite:process.env.NODE_ENV == "production" && "None",
       maxAge: accessMaxAge,
     });
 
@@ -216,14 +217,14 @@ const accessMaxAge = 1 * 60 * 60 * 1000; // 15 minutes
 
 res.cookie("mohalla_refresh", newrefresh, {
   httpOnly: true,
-  secure: true,
-  sameSite: "None",
+  secure: process.env.NODE_ENV == "production",
+  sameSite:process.env.NODE_ENV == "production" && "None",
   maxAge: refreshMaxAge,
 });
 res.cookie("mohalla_access", accessToken, {
   httpOnly: true,
-  secure:true,
-  sameSite: "None",
+  secure:process.env.NODE_ENV == "production",
+  sameSite:process.env.NODE_ENV == "production" && "None",
   maxAge: accessMaxAge,
 });
     res.json({

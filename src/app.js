@@ -34,12 +34,25 @@ dotenv.config();
 const app = express();
 
 //Connect to database
-
+const allowedOrigins = [
+  "https://mohalla-react.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000"
+];
 
 // Middleware
 app.use(cors({
-  origin: 'https://mohalla-react.vercel.app' || 'http://localhost:3000',
-  credentials: true
+  origin: function (origin, callback) {
+    // allow requests with no origin (like Postman, server-to-server)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -65,7 +78,7 @@ app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
 app.use("/api/v1/", marketplaceRoutes);
 app.use("/api/v1", servicesRoutes);
-app.use('/auction',auction)
+app.use('/api/v1/auction',auction)
 
 // Health check
 app.get('/api/v1/health', (req, res) => {

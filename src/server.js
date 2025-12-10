@@ -1,10 +1,12 @@
 import app from './app.js';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
+import { startAuctionAutoFinalize } from './cron/auctionAutoFinalize.js';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 8000;
+startAuctionAutoFinalize()
 
 connectDB().then((message)=>{
 console.log(`MongoDB Connected: ${message.connection.host}`);

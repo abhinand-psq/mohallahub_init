@@ -19,7 +19,7 @@ router.post("/login",  authController.login);
 router.post("/refresh", authController.refresh);
 
 // logout
-router.post("/logout", authController.logout);
+router.post("/logout", authMiddleware,authController.logout);
 router.get("/me", authMiddleware, authController.getMe);
 // forgot/reset
 router.post("/forgot", [ body("email").isEmail() ], validateRequest, authController.forgot);

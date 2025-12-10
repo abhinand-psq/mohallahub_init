@@ -1,0 +1,33 @@
+1)change errorhandler page
+2)logger is not configured
+3)upload can be improved (middleware/uploder)
+4)env
+const JWT_SECRET = process.env.JWT_SECRET;
+const ACCESS_EXP = process.env.JWT_EXPIRES_IN || "15m";
+const REFRESH_DAYS = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS || "7"
+
+
+5) change in // src/controllers/auth.controller.js   uca id 
+
+6) or you can use next() in catch field to wrap with a error function 
+7) token password 
+
+8) Note: updateProfile contains TODOs where cloudinary upload integration can be added if you want to accept images in profile update. We added full image handling in signup; update can reuse same pattern. (// src/controllers/user.controller.js)
+
+9) Make sure these imports appear near the top after app is created and before app.use(errorHandler).
+
+10)Admin seed script (optional helper)
+
+11) refreshtoken model is available to add ,delete token with token and user fields
+
+12) refresh token is currently a random token formate change it to jwt.sign from crypt.randombyte
+
+13) random byte or random string always need a expirey attach with it to find its limit
+
+
+current = 
+i changed random token creation to jwt verify for refresh token
+in refresh page use jwt.verify to verification the jwt 
+dont need a token model instead added refresh token to user model adding value to refresh field in user and remove it .
+ verifyAccessToken to verify the token in refresh
+and there is no status feild in user model

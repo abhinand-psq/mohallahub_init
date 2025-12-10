@@ -1,0 +1,3 @@
+i decide that no currect status of auction stores so we do that we get startime and end time
+ and decide the status based on is active or not by calculate the time and apply when data is sent
+ as json like = res.json({...alldata,status:starttime ? "now" : "later"})

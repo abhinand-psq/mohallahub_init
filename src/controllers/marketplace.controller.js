@@ -7,6 +7,8 @@ import User from "../models/User.js";
 import Report from "../models/Report.js"; // if you have Report model; else create simple schema
 import { uploadBuffer } from "../services/cloudinary.service.js";
 import mongoose from "mongoose";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const SHOP_MIN_MEMBERSHIP_DAYS = parseInt(process.env.SHOP_MIN_MEMBERSHIP_DAYS || "7", 10); // default 7 days
 const MAX_SHOPS_PER_USER = parseInt(process.env.MAX_SHOPS_PER_USER || "3", 10);

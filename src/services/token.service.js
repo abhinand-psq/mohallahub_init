@@ -2,6 +2,8 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { logger } from "../config/logger.js";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || JWT_SECRET;

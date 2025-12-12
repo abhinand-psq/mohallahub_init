@@ -1,7 +1,8 @@
 import Post from "../models/Post.js";
 import CommunityMembership from "../models/CommunityMembership.js";
 import Auction from "../models/Auction.js";
-
+import dotenv from 'dotenv';
+dotenv.config();
 
 export const getUserFeed = async (req, res, next) => {
   try {

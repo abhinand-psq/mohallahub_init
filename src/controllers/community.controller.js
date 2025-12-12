@@ -5,7 +5,8 @@ import CommunityMembership from "../models/CommunityMembership.js";
 import User from "../models/User.js";
 import UserCommunityAccess from "../models/UserCommunityAccess.js";
 import { uploadBuffer } from "../services/cloudinary.service.js";
-
+import dotenv from 'dotenv';
+dotenv.config();
 
 import dotenv from 'dotenv'
 

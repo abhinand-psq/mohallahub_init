@@ -6,7 +6,8 @@ import UserCommunityAccess from "../models/UserCommunityAccess.js";
 import Report from "../models/Report.js"; // if exists; else skip reporting DB persistence
 import { uploadBuffer } from "../services/cloudinary.service.js";
 import mongoose from "mongoose";
-
+import dotenv from 'dotenv';
+dotenv.config();
 const ObjectId = mongoose.Types.ObjectId;
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(String(id));
 

@@ -5,6 +5,8 @@ import CommunityMembership from "../models/CommunityMembership.js";
 import User from '../models/User.js'
 import { uploadBuffer } from "../services/cloudinary.service.js";
 import mongoose from "mongoose";
+import dotenv from 'dotenv';
+dotenv.config();
 /**
  * @route
  * @access

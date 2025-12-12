@@ -2,7 +2,8 @@ import Community from '../models/Community.js';
 import CommunityMembership from '../models/CommunityMembership.js';
 import User from '../models/User.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryHelpers.js';
-
+import dotenv from 'dotenv';
+dotenv.config();
 // Create community
 export const createCommunity = async (req, res) => {
   try {

@@ -1,7 +1,8 @@
 // src/controllers/user.controller.js
 import User from "../models/User.js";
 import CommunityMembership from "../models/CommunityMembership.js";
-
+import dotenv from 'dotenv';
+dotenv.config();
 export const getProfile = async (req, res, next) => {
   try {
     const { id } = req.params;

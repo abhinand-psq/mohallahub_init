@@ -8,9 +8,7 @@ import { uploadBuffer } from "../services/cloudinary.service.js";
 import dotenv from 'dotenv';
 dotenv.config();
 
-import dotenv from 'dotenv'
 
-dotenv.config()
 export const createCommunity = async (req, res, next) => {
   try {
     console.log(req.body);

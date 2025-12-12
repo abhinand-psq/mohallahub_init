@@ -35,6 +35,7 @@ const app = express();
 
 //Connect to database
 const allowedOrigins = [
+   "https://mohalla-psi.vercel.app/",
   "https://mohalla-react.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000"

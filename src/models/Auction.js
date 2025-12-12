@@ -101,6 +101,7 @@ const auctionSchema = new Schema(
 // ✅ VALIDATION: end time must be AFTER start time
 //
 auctionSchema.pre("validate", function (next) {
+  console.log("yup this is the problem")
   if (this.auctionEndTime <= this.auctionStartTime) {
     return next(new Error("Auction end time must be after start time"));
   }

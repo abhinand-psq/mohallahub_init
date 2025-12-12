@@ -62,6 +62,8 @@ export const getUserFeed = async (req, res, next) => {
 
 
 export const getAuctionFeed = async (req, res, next) => {
+  console.log("hay");
+  
   try {
     const userId = req.user._id;
 
@@ -95,9 +97,12 @@ export const getAuctionFeed = async (req, res, next) => {
           ? "active"
           : "ended",
     }));
+console.log("newdata",enriched);
 
     res.json({ success: true, data: enriched });
   } catch (err) {
     next(err);
   }
 };
+
+

@@ -3,6 +3,7 @@ import Bid from "../models/Bid.js";
 import mongoose from "mongoose";
 import {getAuctionStatus} from "../utils/auctionStatus.js";
 import CommunityMembership from "../models/CommunityMembership.js";
+import { uploadBuffer } from "../services/cloudinary.service.js";
 
 export const createAuction = async (req, res, next) => {
   console.log("its ork");
@@ -19,6 +20,7 @@ export const createAuction = async (req, res, next) => {
       auctionEndTime,
     } = req.body;
     
+    console.log(auctionStartTime,auctionEndTime)
     if (!mongoose.Types.ObjectId.isValid(communityId)) {
       return res.status(400).json({ success: false, message: "Invalid community ID" });
     }
@@ -52,10 +54,27 @@ export const createAuction = async (req, res, next) => {
       });
     }
 
+    let image = null;
+
+    if (req.files?.image?.[0]) {
+      const file = req.files.image[0];
+      const upload = await uploadBuffer(file.buffer, {
+        folder: `auction/${communityId}`,
+        resource_type: "image"
+      });
+
+      image = {
+        url: upload.secure_url,
+        publicId: upload.public_id
+      };
+    }
+
+
     const auction = await Auction.create({
       community: communityId,
       createdBy: userId,
       title: title.trim(),
+        image, 
       description: description || "",
       startingPrice,
       minimumBidIncrement: minimumBidIncrement || 1,
@@ -130,6 +149,8 @@ export const placeBid = async (req, res, next) => {
     const { amount } = req.body;
     const userId = req.user._id;
 
+    console.log(amount)
+
      const thisauction = await Auction.findById(auctionId);
     if (!thisauction) {
       return res.status(404).json({
@@ -141,6 +162,8 @@ export const placeBid = async (req, res, next) => {
     // 🚫 Prevent owner/seller from bidding on their own auction
   
     if (thisauction.createdBy && thisauction.createdBy.toString() === userId.toString()) {
+      console.log("oops");
+      
       return res.status(400).json({
         success: false,
         error: { message: "Auction owner cannot place bids on their own auction" },
@@ -153,6 +176,8 @@ export const placeBid = async (req, res, next) => {
 
     const bidAmount = Number(amount);
     if (!bidAmount || bidAmount <= 0) {
+      console.log("okey here is problem");
+      
       return res.status(400).json({ success: false, message: "Invalid bid amount" });
     }
 
@@ -322,5 +347,190 @@ export const finalizeAuction = async (req, res, next) => {
     next(err);
   } finally {
     session.endSession();
+  }
+};
+
+export const getAuctionFeedForCommunity = async (req, res, next) => {
+  try {
+    const communityId = req.params.communityId;
+
+    if (!mongoose.Types.ObjectId.isValid(communityId)) {
+      return res.status(400).json({ success: false, message: "Invalid community ID" });
+    }
+
+    const page = parseInt(req.query.page || "1");
+    const limit = parseInt(req.query.limit || "20");
+    const skip = (page - 1) * limit;
+
+    // Fetch auctions for this community
+    const auctions = await Auction.find({ community: communityId })
+      .sort({ auctionStartTime: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const now = new Date();
+
+    // Attach status + highest bid
+    const results = await Promise.all(
+      auctions.map(async (auction) => {
+        let status;
+
+if (auction.isClosed === true) {
+    status = "ended";        // manual or natural end
+} else {
+    const now = new Date();
+    if (now < auction.auctionStartTime) status = "scheduled";
+    else if (now <= auction.auctionEndTime) status = "active";
+    else status = "ended";   // time-based end
+}
+
+    
+        const highestBid = await Bid.findOne({ auction: auction._id })
+          .sort({ amount: -1 })
+          .lean();
+
+        return {
+          ...auction,
+          status,
+          highestBid: highestBid
+            ? { amount: highestBid.amount, bidder: highestBid.bidder }
+            : null,
+        };
+      })
+    );
+
+    const total = await Auction.countDocuments({ community: communityId });
+
+    return res.json({
+      success: true,
+      data: results,
+      pagination: { page, limit, total }
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET one auction by ID
+export const getAuctionById = async (req, res, next) => {
+  console.log("hell");
+  
+  try {
+    const auctionId = req.params.auctionId;
+
+    if (!mongoose.Types.ObjectId.isValid(auctionId)) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Invalid auction ID" }
+      });
+    }
+
+    const auction = await Auction.findById(auctionId)
+      .populate("createdBy", "username firstName lastName profilePic isVerified")
+      .populate("winner", "username firstName lastName profilePic")
+      .lean();
+
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        error: { message: "Auction not found" }
+      });
+    }
+
+    // if (auction.isClosed === true) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     error: { message: "Auction already ended or closed by owner" }
+    //   });
+    // }
+
+    // determine status dynamically
+    let status;
+
+if (auction.isClosed === true) {
+    status = "ended";        // manual or natural end
+} else {
+    const now = new Date();
+    if (now < auction.auctionStartTime) status = "scheduled";
+    else if (now >= auction.auctionStartTime && now <= auction.auctionEndTime) status = "active";
+    else status = "ended";   // time-based end
+}
+
+    // populate highest bid if exists
+    let highestBid = null;
+
+    if (auction.stats?.highestBidAmount > 0) {
+      const topBid = await Bid.findOne({ auction: auction._id })
+        .sort({ amount: -1 })
+        .populate("bidder", "username firstName lastName profilePic")
+        .lean();
+
+      if (topBid) {
+        highestBid = {
+          amount: topBid.amount,
+          bidder: topBid.bidder
+        };
+      }
+    }
+
+    console.log(auction);
+    
+
+    return res.json({
+      success: true,
+      data: {
+        ...auction,
+        status,
+        highestBid
+      }
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+
+export const getAuctionBidHistory = async (req, res, next) => {
+  try {
+    const { auctionId } = req.params;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(auctionId)) {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Invalid auction ID" }
+      });
+    }
+
+    // Check auction exists
+    const auction = await Auction.findById(auctionId).lean();
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        error: { message: "Auction not found" }
+      });
+    }
+
+    // Fetch bid history sorted from newest → oldest
+    const history = await Bid.find({ auction: auctionId })
+      .populate("bidder", "username firstName lastName profilePic")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: {
+        auctionId,
+        totalBids: history.length,
+        history
+      }
+    });
+  } catch (err) {
+    next(err);
   }
 };

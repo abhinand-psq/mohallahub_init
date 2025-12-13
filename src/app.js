@@ -35,10 +35,11 @@ const app = express();
 
 //Connect to database
 const allowedOrigins = [
-  "https://mohalla-react.vercel.app",
-  "http://localhost:5173",
-  "http://localhost:3000"
-];
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://mohalla-react.vercel.app",
+    /https:\/\/.+\.vercel\.app$/, // RegExp for all Vercel previews
+];;
 
 // Middleware
 app.use(cors({

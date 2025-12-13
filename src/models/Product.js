@@ -16,7 +16,7 @@ const productSchema = new Schema({
   stock: { type: Number, default: 1 },
 
   category: { type: String, required: true }, // must be allowed by community/shop categories
-  condition: { type: String, enum: ["new", "used"], required: true }, // required per your rule
+  condition: { type: String, enum: ["new", "used","like_new","good","fair","poor"], required: true }, // required per your rule
 
   // For phase-1: single image only
   image: {

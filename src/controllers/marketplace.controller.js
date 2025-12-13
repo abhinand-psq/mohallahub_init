@@ -162,7 +162,7 @@ export const createProduct = async (req, res, next) => {
     if (!title || !title.trim() || !price || !category || !condition) {
       return res.status(400).json({ success: false, error: { message: "Missing required fields" } });
     }
-    if (!["new", "used"].includes(condition)) {
+    if (!["new", "used","like_new","good","fair","poor"].includes(condition)) {
       return res.status(400).json({ success: false, error: { message: "Invalid condition" } });
     }
 

@@ -151,6 +151,8 @@ export const getShop = async (req, res, next) => {
  * multipart: image (single)
  */
 export const createProduct = async (req, res, next) => {
+  console.log("hello");
+  
   try {
     const sellerId = req.user?._id;
     const shopId = req.params.shopId;
@@ -162,9 +164,11 @@ export const createProduct = async (req, res, next) => {
     if (!title || !title.trim() || !price || !category || !condition) {
       return res.status(400).json({ success: false, error: { message: "Missing required fields" } });
     }
+    console.log("this thing is v1")
     if (!["new", "used","like_new","good","fair","poor"].includes(condition)) {
       return res.status(400).json({ success: false, error: { message: "Invalid condition" } });
     }
+    console.log("this thing is v2")
 
     const shop = await Shop.findById(shopId);
     if (!shop) return res.status(404).json({ success: false, error: { message: "Shop not found" } });

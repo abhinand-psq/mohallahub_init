@@ -31,7 +31,7 @@ router.post(
   "/shop/:shopId/product",
   authMiddleware,
   upload.fields([{ name: "image", maxCount: 1 }]),
-  [ body("title").isLength({ min: 2 }), body("price").isNumeric(), body("category").notEmpty(), body("condition").isIn(["new","used"]) ],
+  [ body("title").isLength({ min: 2 }), body("price").isNumeric(), body("category").notEmpty(), body("condition").isIn(["new", "used","like_new","good","fair","poor"])],
   validateRequest,
   marketplaceController.createProduct
 );

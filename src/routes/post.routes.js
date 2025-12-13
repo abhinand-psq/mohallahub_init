@@ -13,6 +13,7 @@ router.post(
   authMiddleware,
   upload.fields([{ name: "media", maxCount: 3 }]),
   [
+    body("content").optional().isString().trim(),
     body("communityId").notEmpty().withMessage("Community ID is required"),
     body("content").optional().isString().trim(),
     body("rePostOf").optional().isMongoId().withMessage("Invalid repost ID format"),
